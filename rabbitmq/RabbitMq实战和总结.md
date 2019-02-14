@@ -80,7 +80,7 @@ SpringAMQP项目对RabbitMQ做了很好的封装，可以很方便的手动声�
 
 在配置类使用<code>@EnableRabbit</code>的情况下，也可以基于注解进行声明，在Bean的方法上加上<code>@RabbitListener</code>，如下:
 
-``` java
+```java
     /**
      * 可以直接通过注解声明交换器、绑定、队列。但是如果声明的和rabbitMq中已经存在的不一致的话
      * 会报错便于测试，我这里都是不使用持久化，没有消费者之后自动删除
@@ -195,7 +195,7 @@ public void process2(@Headers Map<String, Object> headers,ExampleEvent msg);
 
 RabbitMq消费者可以选择手动和自动确认两种模式，如果是自动，消息已到达队列，RabbitMq对无脑的将消息抛给消费者，一旦发送成功，他会认为消费者已经成功接收，在RabbitMq内部就把消息给删除了。另外一种就是手动模式，手动模式需要消费者对每条消息进行确认(也可以批量确认)，RabbitMq发送完消息之后，会进入到一个待确认(unacked)的队列，如下图红框部分：
 
-![](http://pewaccq76.bkt.clouddn.com/201809262010_450.png)
+![](http://cdn.jiangmiantex.com/201809262010_450.png)
 
 如果消费者发送了ack，RabbitMq将会把这条消息从待确认中删除。如果是nack并且指明不要重新入队列，那么该消息也会删除。但是如果是nack且指明了重新入队列那么这条消息将会入队列，然后重新发送给消费者，被重新投递的消息消息头amqp_redelivered属性会被设置成true，客户端可以依靠这点来判断消息是否被确认,可以好好利用这一点，如果每次都重新回队列会导致同一消息不停的被发送和拒绝。消费者在确认消息之前和RabbitMq失去了连接那么消息也会被重新投递。所以手动确认模式很大程度上提高可靠性。自动模式的消息可以提高吞吐量。
 
@@ -319,7 +319,7 @@ spring:
 
 其实也就只是在声明的时候多加了两个参数x-dead-letter-exchange和x-dead-letter-routing-key。这里一开始踩了一个坑，因为<code>@QueueBinding</code>注解中也有arguments属性，我一开始将参数声明到<code>@QueueBinding</code>中，导致一直没绑定成功。如果绑定成功可以在控制台看到queue的Featrues有DLX(死信队列交换器)和DLK(死信队列绑定)。如下:
 
-![](http://pewaccq76.bkt.clouddn.com/201809262129_364.png)
+![](http://cdn.jiangmiantex.com/201809262129_364.png)
 
 [关于消息进入死信的规则](https://blog.csdn.net/u013256816/article/details/54933065)：
 
@@ -377,7 +377,7 @@ RabbitMQ底层的消费模型有两种Push和Pull。我在网上查阅资料的�
 
 这里讲的是消费者的，生产者没什么好讲的。先看消息流转图：
 
-![](http://pewaccq76.bkt.clouddn.com/201809262319_900.png)
+![](http://cdn.jiangmiantex.com/201809262319_900.png)
 
 图中椭圆表示线程，矩形是队列。消息到达AMQP的连接线程，然后分发到client线程池，随后分发到监听器。注意除了监听器的线程，其他都是在<code>com.rabbitmq.client.impl.AMQConnection</code>中创建的线程，我们对线程池做一些修改。连接线程名字不能修改就是AMQP Connection打头。心跳线程可以设置setConnectionThreadFactory来设置名字。如下：
 
@@ -411,7 +411,7 @@ listener的线程设置如下：
 注意：SimpleAsyncTaskExecutor每次执行一个任务都会新建一个线程，对于生命周期很短的任务不要使用这个线程池(如client线程池的任务)， 这里的消费者线程生命周期直到SimpleMessageListenerContainer停止所以没有适合这个场景
 
 修改过之后的线程如下：
-![](http://pewaccq76.bkt.clouddn.com/201809262308_811.png)
+![](http://cdn.jiangmiantex.com/201809262308_811.png)
 
 消息投递过程如下：
 1. 在AMQConnection中开启连接线程，该线程用于处理和RabbitMq的通信：
@@ -446,6 +446,6 @@ listener的线程设置如下：
 这时的消息流转图如下：
 
 
-![](http://pewaccq76.bkt.clouddn.com/201809262319_841.png)
+![](http://cdn.jiangmiantex.com/201809262319_841.png)
 
 还有一些关于监听器的例子和Springboot配置我放在了源码里，这里不再讲述。
