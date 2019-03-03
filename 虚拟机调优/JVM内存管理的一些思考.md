@@ -84,6 +84,12 @@ real
   }
 
 ```
+另外补充下类加载器的一些重要方法：
+1. loadClass 定义了双亲委派模型的框架
+2. findClass 自己基本ClassLoader一般重写这个方法
+3. findLoadedClass 找到当前类加载器加载的类 
+4. defineClass  类加载的加载阶段（注意这个时候Class对象已经在内存中生成）
+5. resolveClass 类加载的验证、准备、解析阶段
 
 ## 八、 类加载器的回收
 
