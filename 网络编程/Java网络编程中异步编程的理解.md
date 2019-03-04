@@ -1,29 +1,81 @@
 ##前言##
-这篇文章主要是总结自己对于网络编程中异步，同步，阻塞和非阻塞的理解，这个问题自从学习nio以来一直困扰着我，，其实想来很久就想写了，只不过当时理解不够，无从下手。最近在学习vertx框架，又去熟悉了下netty的代码，因为了对于多线程也有了更深的理解，所以才开始对于这些概念有了理解，用于理清思路。
+这篇文章主要是总结自己对于网络编程中异步，同步，阻塞和非阻塞的理解，这个问题自从学习nio以来一直困扰着我，，其实想来很久就想写了，只不过当时理解不够，无从下手。最近在学习vertx框架，又去熟悉了下netty的代码，因为了对于多线程也有了更深的理解，所以才开始对于这些概念有了理解，用于理清思路，本文需要有良好的多线程和网络编程基础，不适合初学者。
 
 
 ## 一、异步，同步，阻塞和非阻塞的理解
 
 
-## 二、为什么使用异步
+关于这四个概念在IO方面的理解我贴两个链接，他们已经有了很好的说明我就不再讲述：
+1. [怎样理解阻塞非阻塞与同步异步的区别？ - 严肃的回答 - 知乎](https://www.zhihu.com/question/19732473/answer/20851256)
+2. [IO - 同步，异步，阻塞，非阻塞 ](https://blog.csdn.net/historyasamirror/article/details/5778378)
+
+以前在学习c++中muduo只是记得[陈硕说的epoll是一个同步非阻塞的模型](https://www.zhihu.com/question/19732473/answer/26091478)，但是网上很多人说Reactor模型是一个异步阻塞的模型，在学习Netty的时候[官网](https://netty.io/)是这么介绍的:
+
+> Netty is an asynchronous event-driven network application framework 
+  for rapid development of maintainable high performance protocol servers & clients.
+
+Netty是一个异步的高性能网络框架，那么到底是谁说错了？
+
+其实大家都没有错误,只是角度不同。
+先说说什么IO是异步的？异步其实是针对数据从内核拷贝到用户进程空间这个操作是谁完成的，同步IO非常好理解，当用户进程发起一个read操作的时候发生一次系统调用，然后内核检查有没有数据，如果有则复制数据到进程空间，用户进程继续执行。而异步IO中复制数据到进程空间这个操作是内核帮你完成的，等完成之后再来通知你，执行你的逻辑。Reactor模型中，EventLoop线程在select到有可读数据之后，然后在自己去读取数据，所以从这个角度来讲Reactor模型确实是同步的，在Linux的五种IO模型中只有异步IO是异步的。
 
 
-## 三、异步编程从用户层面和框架层面不同角度的理解
+那么为什么Netty说他是一个异步网络库呢，这其实是另一个角度的阐述，对于网络库的作者来说，他们面向的是Linux提供的这些api，所以说多路复用的Reactor是同步的没问题。那么对于Netty的使用者来说，我们面向的是Netty，Netty进一步封装了IO操作，在我们发起IO操作的时候它返回了一个Future，我们可以提供一个监听器来传入我们的回调，当IO操作完成时会执行我们的逻辑，我们的这个操作相对于Netty就是异步的。
+
+**所以Reactor是同步非阻塞的，Netty是异步非阻塞的。**
 
 
-## 四、ComplablFuture，Netty和Vertx中异步的应用
+## 二、异步编程从用户层面和框架层面不同角度的理解
 
-## 五、理解这些能在实际中用到吗
+**java中的Future是异步的吗？**  
+
+对于这个问题，我想相信很多同学都会认为是异步的，这里我认为是同步的，下面谈谈我的理解。   
+先想想一个异步操作需要哪些元素，我认为需要**发起者，执行者，执行逻辑，回调逻辑**。流程： 发起者请求执行者去执行所需逻辑，然后在成功之后调用回调逻辑。Future中缺了什么？没错，就是那个回调！
+
+我们使用Future的模式一般是：投递一个任务到线程池得有个Future，然后去执行其他可以并行的操作，操作完之后去调用Future的get方法获取结果或者isDone判断是否执行完毕。这里的Future只是对于计算结果的一个建模，我们在后面需要使用的时候再去轮询或者阻塞，他提供的了一个非常好的特性：非阻塞！所以我认为Future是一个同步非阻塞的实现。也正是因为Future没有实现异步的特性，在jdk1.8之后新增了CompletableFuture提供了异步的特性。
+
+> 注意异步元素的发起者和执行者可以是同一个线程，最常见的例子就是NodeJs的单线程模型。拿Netty的线程来具体，你在EventLoop中发起一个写请求后得到一个Future，你可以设置回调，下次执行这个回调的还是EventLoop线程
+
+### 用户角度的理解
+
+这里主要说说在使用异步编程的一点理解，因为平时还是用为主，我们作为框架的使用者有必要了解一些常见的使用范式。就我目前接触的最多还是CompletableFuture，Netty和Vertx，当时也写过一点Js，Js主要也是回调的用法。我知道的用法如下：
+
+1. 回调   这种是最常见的，相信也是最容易理解的，Js和Vertx很多都采用了这个实现，我们在调用一个函数的时候提供一个响应结果的回调。响应式编程就是结合函数式和异步回调的一个产物，我相信以后会越来越常见
+2. 监听器 这个是Netty的实现，Netty将很多同步的地方改成了异步同时返回一个Future，我们可以通过这个Future添加监听器，执行得到结果时的逻辑
+3. 组合式 相对于回调式，在实现多个回调时代码扁平化，可以了解下CompletableFuture的用法和实现真的是非常的优雅
+
+因为异步的高性能，很多时候我们自己也想把一个操作封装成异步的，就需要明白到底什么是异步，明白异步需要的元素，你会发现如果不借助以后的异步组件将一个操作封装成异步非常的困难，所以最简单的方案就是将你的回调最终传递到已有异步的组件中。
+
+举2个简单的例子：   
+1. 我们利用`CompletableFuture.supplyAsync(Object::new).thenAccept(o -> System.out.println(o));`这一行非常简单的代码实现了一个异步，`Object::new`会被投递到线程池中，然后执行完成后执行打印语句。
+2. vertx的例子，vertx将很多同步的操作封装成了异步的操作，比如场景的发起Http请求的，他的底层实现就是将这个操作委托给了Netty
 
 
-Future 模式
+### 框架角度的理解
 
-Netty is an asynchronous event-driven network application framework 
-for rapid development of maintainable high performance protocol servers & clients.
+框架层面的理解有助于我们在写代码中不会用错。有没有想过一个异步操作框架给你做了什么？   
+当你发起一个操作的时候，框架会去执行你的逻辑，在执行完毕时(成功或异常)去**修改状态并执行你的回调**。**修改状态并执行你的回调**这个操作在JDK中放在了CompletableFuture中，在Netty中则单独采用了Promise接口，其实两者的实现是非常类似的（方法名都取的差不多）。以Netty举例分为Future和Promise两个方法，作为用户我们更应该关心Future的接口，Promise是框架层面需要实现的，我们在自己去实现的时候值得我们去学习里面的思想。
+
+不过我认为我们直接使用Promise的这种接口的机会很少，netty和vertx场景下还是有机会用到，在用到Promise接口的时候应该考虑下是否合理，检查下是不是在同一个线程中，是不是可以简单的接口代替。给一个简单的错误示例：
+
+```java
+
+
+```
+
+这里有一点需要说明：当返回给你的Future已经是完成状态时，你再增加回调，**这个回调还会被执行**，Netty和CompletableFuture在添加回调的时候都是检查状态是否完成，完成的话直接投递到相应线程执行。
+
+## 三、为什么使用异步
 
 
 
-以前在学习c++中muduo只是记得陈硕说的epoll是一个同步非阻塞的模型
+## 四、CompletableFuture，Netty和Vertx中异步的应用
+
+## 五、理解这些能在实际中有什么用
+
+
+
+
 
 
 参考文章：
@@ -35,7 +87,7 @@ for rapid development of maintainable high performance protocol servers & client
 5. [IO - 同步，异步，阻塞，非阻塞 ](https://blog.csdn.net/historyasamirror/article/details/5778378)
 6. [nodejs真的是单线程吗?](https://segmentfault.com/a/1190000014926921)
 7. [作为一个服务器，node.js 是性能最高的吗？ - 圆胖肿的回答 - 知乎](https://www.zhihu.com/question/35280583/answer/487808916)
-6. Java8实战第11章和java并发编程实战
-
-
-[1]:https://www.zhihu.com/question/35280583/answer/487808916
+8. [web框架性能排名](https://www.techempower.com/benchmarks/)
+6. Java8实战第11章
+7. Java并发编程实战
+8. Netty权威指南第二版
