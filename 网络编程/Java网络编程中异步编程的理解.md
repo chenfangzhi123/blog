@@ -59,17 +59,37 @@ Netty是一个异步的高性能网络框架，那么到底是谁说错了？
 不过我认为我们直接使用Promise的这种接口的机会很少，netty和vertx场景下还是有机会用到，在用到Promise接口的时候应该考虑下是否合理，检查下是不是在同一个线程中，是不是可以简单的接口代替。给一个简单的错误示例：
 
 ```java
+import io.vertx.core.Future;
 
+public class AuctionHandler {
 
+  public Future<Void> handle() {
+    // 请求级别变量
+    Context context = new Context();
+    context.future.tryComplete();
+    return context.future;
+  }
+
+  public static class Context {
+    Future<Void> future = Future.future();
+  }
+  public static void main(String[] args) { 
+    //  注意这里的handle方法返回的Future是vertx的。
+    //  这里的方法都是在同一个线程中执行的，完全没有异步化，所以可以改成传递一个普通的接口即可
+    new AuctionHandler().handle().setHandler(event1 -> System.out.println("handler exec!"));
+  }
+}
 ```
 
-这里有一点需要说明：当返回给你的Future已经是完成状态时，你再增加回调，**这个回调还会被执行**，Netty和CompletableFuture在添加回调的时候都是检查状态是否完成，完成的话直接投递到相应线程执行。
+虽然这个的代码错误看上去很低级，但是在开发vertx应用时需要时刻保持警惕。另外还有一点需要说明：当返回给你的Future已经是完成状态时，如上面的代码示例，你再增加回调，**这个回调还会被执行**，Netty和CompletableFuture在添加回调的时候都是检查状态是否完成，完成的话直接投递到相应线程执行。
 
 ## 三、为什么使用异步
 
 
 
 ## 四、CompletableFuture，Netty和Vertx中异步的应用
+
+
 
 ## 五、理解这些能在实际中有什么用
 
