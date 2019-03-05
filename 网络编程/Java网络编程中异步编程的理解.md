@@ -99,8 +99,6 @@ public class AuctionHandler {
 
 程序运行过程中始终是围绕着两个主题：IO、CPU。CPU和IO的速度差距十分大，异步和Reactor模型都是为了平衡这个差距，让CPU能充分利用起来，不要因为IO和其他同步操作导致线程Hang住，始终处于可运行的状态，可以使用少量的线程充分利用CPU。
 
-
-
 ## 四、理解这些能在实际中的应用
 
 Redis，CompletableFuture，Netty和VertX中异步的应用
