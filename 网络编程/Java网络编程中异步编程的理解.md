@@ -1,5 +1,5 @@
 ##前言
-这篇文章主要是总结自己对于网络编程中异步，同步，阻塞和非阻塞的理解，这个问题自从学习nio以来一直困扰着我，，其实想来很久就想写了，只不过当时理解不够，无从下手。最近在学习vertx框架，又去熟悉了下netty的代码，因为了对于多线程也有了更深的理解，所以才开始对于这些概念有了理解，用于理清思路，本文需要有良好的多线程和网络编程基础，不适合初学者。
+这篇文章主要是总结自己对于网络编程中异步，同步，阻塞和非阻塞的理解，这个问题自从学习nio以来一直困扰着我，，其实想来很久就想写了，只不过当时理解不够，无从下手。最近在学习VertX框架，又去熟悉了下Netty的代码，因为了对于多线程也有了更深的理解，所以才开始对于这些概念有了理解，用于理清思路，本文需要有良好的多线程和网络编程基础，不适合初学者。
 
 
 ## 一、异步，同步，阻塞和非阻塞的理解
@@ -7,7 +7,7 @@
 1. [怎样理解阻塞非阻塞与同步异步的区别？ - 严肃的回答 - 知乎](https://www.zhihu.com/question/19732473/answer/20851256)
 2. [IO - 同步，异步，阻塞，非阻塞 ](https://blog.csdn.net/historyasamirror/article/details/5778378)
 
-以前在学习c++中muduo只是记得[陈硕说的epoll是一个同步非阻塞的模型](https://www.zhihu.com/question/19732473/answer/26091478)，但是网上很多人说Reactor模型是一个异步阻塞的模型，在学习Netty的时候[官网](https://netty.io/)是这么介绍的:
+以前在学习c++中muduo只是记得[陈硕说的epoll是一个同步非阻塞的模型](https://www.zhihu.com/question/19732473/answer/26091478)，但是网上很多人说Reactor模型是一个异步阻塞的模型，在学习Netty的时候[官网](https://Netty.io/)是这么介绍的:
 
 > Netty is an asynchronous event-driven network application framework 
   for rapid development of maintainable high performance protocol servers & clients.
@@ -23,7 +23,7 @@ Netty是一个异步的高性能网络框架，那么到底是谁说错了？
 
 ## 二、异步编程从用户层面和框架层面不同角度的理解
 
-**java中的Future是异步的吗？**  
+**Java中的Future是异步的吗？**  
 
 对于这个问题，我想相信很多同学都会认为是异步的，这里我认为是同步的，下面谈谈我的理解。   
 先想想一个异步操作需要哪些元素，我认为需要**发起者，执行者，执行逻辑，回调逻辑**。流程： 发起者请求执行者去执行所需逻辑，然后在成功之后调用回调逻辑。Future中缺了什么？没错，就是那个回调！
@@ -34,9 +34,9 @@ Netty是一个异步的高性能网络框架，那么到底是谁说错了？
 
 ### 用户角度的理解
 
-这里主要说说在使用异步编程的一点理解，因为平时还是用为主，我们作为框架的使用者有必要了解一些常见的使用范式。就我目前接触的最多还是CompletableFuture，Netty和Vertx，当时也写过一点Js，Js主要也是回调的用法。我知道的用法如下：
+这里主要说说在使用异步编程的一点理解，因为平时还是用为主，我们作为框架的使用者有必要了解一些常见的使用范式。就我目前接触的最多还是CompletableFuture，Netty和VertX，当时也写过一点Js，Js主要也是回调的用法。我知道的用法如下：
 
-1. 回调   这种是最常见的，相信也是最容易理解的，Js和Vertx很多都采用了这个实现，我们在调用一个函数的时候提供一个响应结果的回调。响应式编程就是结合函数式和异步回调的一个产物，我相信以后会越来越常见
+1. 回调   这种是最常见的，相信也是最容易理解的，Js和VertX很多都采用了这个实现，我们在调用一个函数的时候提供一个响应结果的回调。响应式编程就是结合函数式和异步回调的一个产物，我相信以后会越来越常见
 2. 监听器 这个是Netty的实现，Netty将很多同步的地方改成了异步同时返回一个Future，我们可以通过这个Future添加监听器，执行得到结果时的逻辑
 3. 组合式 相对于回调式，在实现多个回调时代码扁平化，可以了解下CompletableFuture的用法和实现真的是非常的优雅
 
@@ -44,7 +44,7 @@ Netty是一个异步的高性能网络框架，那么到底是谁说错了？
 
 举2个简单的例子：   
 1. 我们利用`CompletableFuture.supplyAsync(Object::new).thenAccept(o -> System.out.println(o));`这一行非常简单的代码实现了一个异步，`Object::new`会被投递到线程池中，然后执行完成后执行打印语句。
-2. vertx的例子，vertx将很多同步的操作封装成了异步的操作，比如场景的发起Http请求的，他的底层实现就是将这个操作委托给了Netty
+2. VertX的例子，VertX将很多同步的操作封装成了异步的操作，比如场景的发起Http请求的，他的底层实现就是将这个操作委托给了Netty
 
 
 ### 框架角度的理解
@@ -52,10 +52,10 @@ Netty是一个异步的高性能网络框架，那么到底是谁说错了？
 框架层面的理解有助于我们在写代码中不会用错。有没有想过一个异步操作框架给你做了什么？   
 当你发起一个操作的时候，框架会去执行你的逻辑，在执行完毕时(成功或异常)去**修改状态并执行你的回调**。**修改状态并执行你的回调**这个操作在JDK中放在了CompletableFuture中，在Netty中则单独采用了Promise接口，其实两者的实现是非常类似的（方法名都取的差不多）。以Netty举例分为Future和Promise两个方法，作为用户我们更应该关心Future的接口，Promise是框架层面需要实现的，我们在自己去实现的时候值得我们去学习里面的思想。
 
-不过我认为我们直接使用Promise的这种接口的机会很少，netty和vertx场景下还是有机会用到，在用到Promise接口的时候应该考虑下是否合理，检查下是不是在同一个线程中，是不是可以简单的接口代替。给一个简单的错误示例：
+不过我认为我们直接使用Promise的这种接口的机会很少，Netty和VertX场景下还是有机会用到，在用到Promise接口的时候应该考虑下是否合理，检查下是不是在同一个线程中，是不是可以简单的接口代替。给一个简单的错误示例：
 
-```java
-import io.vertx.core.Future;
+```Java
+import io.VertX.core.Future;
 
 public class AuctionHandler {
 
@@ -70,14 +70,14 @@ public class AuctionHandler {
     Future<Void> future = Future.future();
   }
   public static void main(String[] args) { 
-    //  注意这里的handle方法返回的Future是vertx的。
+    //  注意这里的handle方法返回的Future是VertX的。
     //  这里的方法都是在同一个线程中执行的，完全没有异步化，所以可以改成传递一个普通的接口即可
     new AuctionHandler().handle().setHandler(event1 -> System.out.println("handler exec!"));
   }
 }
 ```
 
-虽然这个的代码错误看上去很低级，但是在开发vertx应用时需要时刻保持警惕。另外还有一点需要说明：当返回给你的Future已经是完成状态时，如上面的代码示例，你再增加回调，**这个回调还会被执行**，Netty和CompletableFuture在添加回调的时候都是检查状态是否完成，完成的话直接投递到相应线程执行。
+虽然这个的代码错误看上去很低级，但是在开发VertX应用时需要时刻保持警惕。另外还有一点需要说明：当返回给你的Future已经是完成状态时，如上面的代码示例，你再增加回调，**这个回调还会被执行**，Netty和CompletableFuture在添加回调的时候都是检查状态是否完成，完成的话直接投递到相应线程执行。
 
 ## 三、为什么使用异步
 
@@ -88,7 +88,7 @@ public class AuctionHandler {
 
 我们知道Jetty的底层实现就是Reactor模型，Tomcat在8之后默认也用了Reactor是不是会大幅提高性能？不幸的是，虽然可以提高一些性能但是还是无法和Node一较高低，他解决的是Http连接那一块的阻塞问题，但是由于Servlet的编程模型，大量的同步阻塞操作还是无法避免，比如你在一个请求中去访问了数据库，这个线程就会一直被占用，一定程度上你可以通过增加线程来缓解但是线程过多又会增加调度的成本，可能会导致虚拟机假死。所以如果你的处理中有这种耗时操作，那他就是你的瓶颈，你的qps的上限就很低。在高并发场景下，Servlet的瓶颈会十分突出，只能通过大量的堆机器来水平扩展，但是没有很好的榨干服务器的性能。
 
-所以我们需要的是编程模型的改变，像Nodejs那样在同步阻塞的地方进行异步非阻塞或者异步阻塞化。Spring5.0中的 WebFlux给了一个对应的解决方案，提供了响应式编程的模型用以取代Servlet，他对常见同步阻塞的地方进行了重写，如Redis和Mysql等常见的IO。很早之前Vertx（早期名字Node.X，Java版的Nodejs）框架也提供了这样的编程模型，对很多同步阻塞的地方进行了重写，这个框架十分轻量级，社区活跃度非常高，使用起来非常方便。这两个底层都是Netty，不得不说Netty实在是太强大了。也从另外一个角度说明设计的重要性，语言反而是其次。NodeJs，WebFlux和Vertx都采用了类似的Reactor模型，高性能服务器领域这个模型几乎已经是最佳实践，理解这个模型就和多线程一样重要。我觉得拿Servlet和NodeJs来做性能的对比，是十分不公平的。NodeJs在Java领悟的对手应该是Vertx这种框架，关于高性能Web框架的对比，[techempower](https://www.techempower.com/benchmarks/)这个网站已经给出了详细的排名，排名前十的大部分是Jvm语言，Nodejs在五十名之后了，所以不要在拿Servlet去和NodeJs做对比了，Servlet这种模型在高并发领悟一定会被逐渐取代。所以要深入理解响应式编程，拥抱响应式编程，现有的代码以及未来的开发都可以用响应式编程来做优化。
+所以我们需要的是编程模型的改变，像Nodejs那样在同步阻塞的地方进行异步非阻塞或者异步阻塞化。Spring5.0中的 WebFlux给了一个对应的解决方案，提供了响应式编程的模型用以取代Servlet，他对常见同步阻塞的地方进行了重写，如Redis和Mysql等常见的IO。很早之前VertX（早期名字Node.X，Java版的Nodejs）框架也提供了这样的编程模型，对很多同步阻塞的地方进行了重写，这个框架十分轻量级，社区活跃度非常高，使用起来非常方便。这两个底层都是Netty，不得不说Netty实在是太强大了。也从另外一个角度说明设计的重要性，语言反而是其次。NodeJs，WebFlux和VertX都采用了类似的Reactor模型，高性能服务器领域这个模型几乎已经是最佳实践，理解这个模型就和多线程一样重要。我觉得拿Servlet和NodeJs来做性能的对比，是十分不公平的。NodeJs在Java领悟的对手应该是VertX这种框架，关于高性能Web框架的对比，[techempower](https://www.techempower.com/benchmarks/)这个网站已经给出了详细的排名，排名前十的大部分是Jvm语言，Nodejs在五十名之后了，所以不要在拿Servlet去和NodeJs做对比了，Servlet这种模型在高并发领悟一定会被逐渐取代。所以要深入理解响应式编程，拥抱响应式编程，现有的代码以及未来的开发都可以用响应式编程来做优化。
 
 **那么异步到底解决了什么问题？**
 
@@ -103,7 +103,7 @@ public class AuctionHandler {
 
 ## 四、理解这些能在实际中的应用
 
-Redis，CompletableFuture，Netty和Vertx中异步的应用
+Redis，CompletableFuture，Netty和VertX中异步的应用
 
 
 
@@ -117,7 +117,7 @@ Redis，CompletableFuture，Netty和Vertx中异步的应用
 1. [回调地狱的今生前世](https://juejin.im/entry/57fa6a4e67f3560058752542)
 2. [怎样理解阻塞非阻塞与同步异步的区别？ - 严肃的回答 - 知乎](https://www.zhihu.com/question/19732473/answer/20851256)
 3. [怎样理解阻塞非阻塞与同步异步的区别？ - 陈硕的回答 - 知乎](https://www.zhihu.com/question/19732473/answer/26091478)
-4. [netty官网](https://netty.io/)
+4. [Netty官网](https://Netty.io/)
 5. [IO - 同步，异步，阻塞，非阻塞 ](https://blog.csdn.net/historyasamirror/article/details/5778378)
 6. [nodejs真的是单线程吗?](https://segmentfault.com/a/1190000014926921)
 7. [作为一个服务器，node.js 是性能最高的吗？ - 圆胖肿的回答 - 知乎](https://www.zhihu.com/question/35280583/answer/487808916)
