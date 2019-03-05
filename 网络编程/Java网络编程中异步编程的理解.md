@@ -99,11 +99,11 @@ public class AuctionHandler {
 
 程序运行过程中始终是围绕着两个主题：IO、CPU。CPU和IO的速度差距十分大，异步和Reactor模型都是为了平衡这个差距，让CPU能充分利用起来，不要因为IO和其他同步操作导致线程Hang住，始终处于可运行的状态，可以使用少量的线程充分利用CPU。
 
-## 四、CompletableFuture，Netty和Vertx中异步的应用
 
 
-## 五、理解这些能在实际中有什么用
+## 四、理解这些能在实际中的应用
 
+Redis，CompletableFuture，Netty和Vertx中异步的应用
 
 
 
@@ -111,7 +111,8 @@ public class AuctionHandler {
 
 1. 异步阻塞这种模式真的存在吗？ 
 
-参考文章：
+
+## 参考文章
 
 1. [回调地狱的今生前世](https://juejin.im/entry/57fa6a4e67f3560058752542)
 2. [怎样理解阻塞非阻塞与同步异步的区别？ - 严肃的回答 - 知乎](https://www.zhihu.com/question/19732473/answer/20851256)
@@ -120,7 +121,7 @@ public class AuctionHandler {
 5. [IO - 同步，异步，阻塞，非阻塞 ](https://blog.csdn.net/historyasamirror/article/details/5778378)
 6. [nodejs真的是单线程吗?](https://segmentfault.com/a/1190000014926921)
 7. [作为一个服务器，node.js 是性能最高的吗？ - 圆胖肿的回答 - 知乎](https://www.zhihu.com/question/35280583/answer/487808916)
-8. [web框架性能排名](https://www.techempower.com/benchmarks/)
-6. Java8实战第11章
-7. Java并发编程实战
-8. Netty权威指南第二版
+8. [web框架性能排名](https://www.techempower.com/benchmarks/)   
+9. Java8实战第11章
+10. Java并发编程实战
+11. Netty权威指南第二版
