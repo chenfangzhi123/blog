@@ -22,6 +22,8 @@
 
 ## 为什么有些文件夹大小不是4096的整数倍
 
+https://superuser.com/questions/585844/why-directories-size-are-different-in-ls-l-output-on-xfs-file-system
+
 ## reboot和shutdown等软连接实现原理
 
 
@@ -29,4 +31,6 @@
 
 
 ## linux权限问题
+
+
 
