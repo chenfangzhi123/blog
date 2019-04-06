@@ -66,7 +66,7 @@ setsid用余新建一个会话，调用这个函数之后会当当前进程成�
 
 ## 五、daemon &和守护进程的区别
 
-因为守护进程的实现是用的setsid，所以其实就是setsid和nohup的区别，两者都可以用来防止进程在终端断开的时候被杀死，nohup还需要配合&放入后台运行。区别的的话守护进程已经脱离了终端，不受终端控制，也就没有 了stdin，stdout和stderr，而使用nohup之后的进程还是有一个终端，只是忽略了其中的SIGHUP信号，存在正常的stdin，stdout和stderr，nohup默认将stdout和stderr重定向到了nohup.out。
+因为守护进程的实现是用的setsid，所以其实就是setsid和nohup的区别，两者都可以用来防止进程在终端断开的时候被杀死，nohup还需要配合&放入后台运行。区别的的话守护进程已经脱离了终端，不受终端控制，也就没有 了stdin，stdout和stderr，而使用nohup之后的进程还是有一个终端，只是忽略了其中的SIGHUP信号，存在正常的stdin，stdout和stderr，nohup默认将stdout和stderr重定向到了nohup.out，nohup的使用也推荐`< /dev/null`来重定向stdin
 
 最佳实践：
 1. 如果是一次性的后台任务，可以使用nohup十分方便
