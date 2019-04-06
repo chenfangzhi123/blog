@@ -1,3 +1,4 @@
+[TOC]
 
 ## 一、进程相关的概念
 
@@ -40,10 +41,10 @@ chen      90490  36829  90490  36829  0 11:57 pts/0    00:00:00 ps -fj
 SIGHUP信号如果为注册处理函数默认行为就是退出。所以会话退出时子进程都被杀死。
 
 解决方案：
-1. 注册SIGHUP信号处理函数：可以在代码中处理或者使用nohup命令
-2. 重新设置setsid：可以在代码中处理或者使用setsid命令
+1. 注册SIGHUP信号处理函数：可以在代码中处理或者使用nohup命令(`nohup daemon & &>daemon.log`)
+2. 重新设置setsid：可以在代码中处理或者使用setsid命令(`setsid daemon`)
  
-### 三、nohup的原理
+## 三、nohup的原理
 
 其实很简单就是注册了SIGHUP的一个处理函数，忽略这个信号，然后去执行实际的命令。
 源码地址：https://github.com/MaiZure/coreutils-8.3/blob/master/src/nohup.c
@@ -58,16 +59,21 @@ SIGHUP信号如果为注册处理函数默认行为就是退出。所以会话�
   //执行实际的代码
   execvp (*cmd, cmd);
 ```
-### 四、setsid原理
+## 四、setsid原理
 
 fork进程之后的子进程共享父进程的很多东西，并且会话组长就是父进程的会长组长，所以会收到来自父进程会话组长的信号。
 setsid用余新建一个会话，调用这个函数之后会当当前进程成为进程组组长和会话组组长，那么原来的会话产生的信号便不会发送到这个进程，从而不会受影响。
 
-### 五、daemon &和守护进程的区别
+## 五、daemon &和守护进程的区别
 
+因为守护进程的实现是用的setsid，所以其实就是setsid和nohup的区别，两者都可以用来防止进程在终端断开的时候被杀死，nohup还需要配合&放入后台运行。区别的的话守护进程已经脱离了终端，不受终端控制，也就没有 了stdin，stdout和stderr，而使用nohup之后的进程还是有一个终端，只是忽略了其中的SIGHUP信号，存在正常的stdin，stdout和stderr，nohup默认将stdout和stderr重定向到了nohup.out。
 
+最佳实践：
+1. 如果是一次性的后台任务，可以使用nohup十分方便
+2. 如果是长期运行的服务，则推荐使用系统的systemd来管理服务
+3. 如果是定时运行的任务则推荐使用cron来运行
 
-### 六、服务进程为什么要fork两次
+## 六、服务进程为什么要fork两次
 
 首先说明两次不是必须的，有很多程序都采用了一次fork。
 
@@ -77,7 +83,7 @@ linux规定调用这个函数之前,当前进程不允许是session leader。进
 第二次：为了限制进程打开控制终端，只有会话组长能打开控制终端（非必须，相当于加了个限制条件Daemon不需要打开终端）
 
 
-### 七、systemd管理daemon
+## 七、systemd管理daemon
 
 现在很多的linux发行版都采用systemd来代替原来的init程序，systemd提供了很优秀的进程管理功能，我们需要注册服务时可以利用systemd功能，可以参看鸟哥的systemd介绍。
  
@@ -85,13 +91,49 @@ linux规定调用这个函数之前,当前进程不允许是session leader。进
 0号进程为内核进程，1号为Systemd进程，其他还有些内核进程在ps命令查看时以[]包裹。具体关系见：[LINUX PID 1 和 SYSTEMD](https://coolshell.cn/articles/17998.html)
 
 
+## 八、僵尸进程
+
+这个定义摘抄自维基百科：在类UNIX系统中，僵尸进程是指完成执行（通过exit系统调用，或运行时发生致命错误或收到终止信号所致）但在操作系统的进程表中仍然有一个表项（进程控制块PCB），处于"终止状态"的进程。这发生于子进程需要保留表项以允许其父进程读取子进程的exit status：一旦退出态通过wait系统调用读取，僵尸进程条目就从进程表中删除，称之为"回收（reaped）"。
+
+## 九、进程名字和启动时指定进程名字
+
+kill，ps，top，pstree这些命令都比较熟悉就不再提了。
+
+至于还有一组命令则不是通过进程号而是通过进程名字来操作进程，pkill和killall一样都是通过名字来杀死进程，而pgrep是通过名字来寻找进程。
+他们的原理都是通过查找/proc这个内存文件系统。
+
+在启动的时候可以通过exec命令重命名：
+`bash -c "exec -a myname sleep 500 &"`
+
+ 你可以通过`ps -ef|grep myname`来查看进程的详细信息
+
+
+## 十、source command和./command 和exec命令的区别
+
+通常执行脚本有三种方式
+1. ./command(同sh command) 
+2. source command(同. command)
+3. exec command
+
+简单说明下上面三种方式：
+
+第一种其实就是对应了linux的fork系统调用，在执行command时候，command是在子进程中执行的，当前shell等待直到子进程的command运行完毕在返回到当前shell。第二种则是直接在当前的进程中直接执行，执行完继续接受用户输入。第三种则对应了linux的exec系统调用，当前进程的执行流程会转向command，command是在当前进程直接执行，但是执行完之后便会直接退出。
+
+所以我们一般用的是第一和第二两种，这种的主要区别就是开不开新的进程（开进程是要一定开销的），另外因为第二种是在当前进程执行的，所以如果在command中设置了变量，那么相当于在当前进程中设置了变量，所以我们一般是用第一种去执行避免当前进程的变量被污染。 
+
 
 思考：
 
 现在加入你在终端已经运行了一个非常耗时的任务，你按ctrl+z放入了后台，然后利用bg开始任务，因为终端断开就会收到SIGHUP信号，有没有办法忽略这个信号或者终端断开不收到这个信号？
+
+
+遗留：
+
+进程调试工具：ltrace strace ftrace
 
 参考链接：
 
 1. [Linux进程组和会话](https://my.oschina.net/hosee/blog/507098)
 2. [在线APUE译文](http://zdyi.com/books/apue/)
 3. [linux终端关闭时为什么会导致在其上启动的进程退出？](https://blog.csdn.net/ybxuwei/article/details/77149575)
+4. [What's the difference between nohup and a daemon?](https://stackoverflow.com/questions/958249/whats-the-difference-between-nohup-and-a-daemon?newreg=60c6365482544823b940ebd4e33089f4)

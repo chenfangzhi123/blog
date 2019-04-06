@@ -24,6 +24,16 @@
 
 https://superuser.com/questions/585844/why-directories-size-are-different-in-ls-l-output-on-xfs-file-system
 
+查看大小
+``` c
+du -sh *
+```
+ls命令显示文件大小问题
+ls -s -S
+
+-s 输出大小
+-S 按大小排序
+-r 逆序排序
 ## reboot和shutdown等软连接实现原理
 
 
@@ -32,5 +42,11 @@ https://superuser.com/questions/585844/why-directories-size-are-different-in-ls-
 
 ## linux权限问题
 
+vmware的网关问题
 
 
+readlink命令
+
+lsof命令详解
+
+tmpfs和proc文件系统
