@@ -29,3 +29,6 @@ ssh -A 用户名@目标机器ip
 
 
 
+
+
+-o "StrictHostKeyChecking no"
