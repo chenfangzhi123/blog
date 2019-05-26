@@ -1,8 +1,12 @@
+[TOC]
 ## 一、ssh命令
 
 **登录类型**
 1. 密码登录： 服务器发送公钥给客户端，客户端使用公钥加密后回传给服务器，服务器解密验证密码。
 2. 公钥登录： 服务器发送一个随机字符串给客户端，客户端用私钥加密，服务器用公钥解密（rsa作为签名使用）
+
+----
+
 
 **ssh命令相关参数**
 1. -A 密钥转发 这个参数在使用跳板机等场景非常有用，如果发现始终连不上需要检查下这个
@@ -11,15 +15,18 @@
 4. -C：请求压缩所有数据；
 5. -f 后台运行
 1. -N 参数： 不要求分配shell，有些场景下ssh禁止账号请求shell终端，比如这个账号只是作为转发
+1. -g  默认这个LocalPort端口只允许本机连接，可以通过这个参数允许别的机器连接这个端口
 2. -T ：不要求分配终端
 3. -o ServerAliveInterval=60 隔段时间发送保活消息
+5. -q 抑制一些调试性的额外输出
+----
 
 **相关的命令**
 1. ssh-keygen 用于生成密钥对
 2. ssh-copy-id 用于复制公钥到服务器
 > 复制公钥也可以使用：ssh user@host 'mkdir -p .ssh && cat >> .ssh/authorized_keys' < ~/.ssh/id_rsa.pub
 
-
+----
 **相关的文件** 
 1. ~/.ssh/authorized_keys  用于保存用户的公钥文件
 2. ~/.ssh/known_hosts文件  保存的服务器用于辨别服务器的唯一散列码
@@ -28,6 +35,8 @@
 5. /etc/ssh/ssh_config  客户端ssh配置
 6. /etc/ssh/sshd_config 服务端ssh配置
 
+
+----
 **使用模式**
 
 这里推荐一种使用的模式，在利用脚本做自动化的时候，可以利用ssh操作远程主机，这种方式可以灵活的运用管道，如上面修改authorized_keys。例：
@@ -38,21 +47,20 @@
 
 ## 二、端口转发
 
-**动态转发**：`ssh -D 1080 user@host `   
+**动态转发**：`ssh -D 1080 user@host -Nfg`   
 
 最广泛的用途是作为sock5代理，另外还有加密连接的附加好处，广泛使用的ss软件就是用的这个。
 另外还可以作为跳板机实现，公网的服务器有些没有外网ip，通过有外网的服务器作为代理去访问那些只有内网ip的服务器。
 
-
-**本地转发**：`ssh -L LocalPort:remoteHost:remotePort sshHost`
-1. -g  默认这个LocalPort端口只允许本机连接，可以通过这个参数允许别的机器连接这个端口    
+----
+**本地转发**：`ssh -L LocalPort:remoteHost:remotePort sshHost`    
 注意这里`remoteHost:remotePort`是相对于sshHost的地址，比如remoteHost设置为localhost，实际就是sshHost本地
 
 
 一般用于无法直连的场景，比如防火墙，没有开发公网端口等， 本地不能直接连接remoteHost，需要用sshHost来做中转。
 当时我们公司的一个场景，我们的服务器一些后台没有开通外网端口，在公司内部我们需要访问后台，利用内网的一台服务器ssh本地转发到公网服务器，我们在内网直接访问内网服务器。
 
-
+----
 **远程转发**：`ssh -R LocalPort:remoteHost:remotePort sshHost`
 
 注意这里`remoteHost:remotePort`是相对于ssh命令执行的机器的和本地转发不同。    
@@ -69,6 +77,7 @@
 
 > xsell中 菜单->查看—>隧道窗格中可以快速创建这三种类型。
 
+---
 **ProxyCommand参数**
 
 很多时候线上服务器的权限管理是通过跳板机来控制的，比如服务器a,b,c你不能直接连接，而是通过先登录跳板机再去连接。如果你现在想在本地连接服务器，有如下方案：
@@ -77,9 +86,61 @@
 3. 远程转发一般不用，因为服务器不能访问公司的局域网
 
 上面的方法虽然可以实现登录后端服务器，但是两部操作还是有些不便，可以使用更方便的ProxyCommand。
-  
-命令：`ssh -o ProxyCommand="ssh user@jumpHost -W %h:%p" serverHost`
+
+该方法也有两种形式：  
+1. `ssh -o ProxyCommand="ssh user@jumpHost -W %h:%p" serverHost`
+2. `ssh -o ProxyCommand="nc -x jumpHost:jumpPort %h:%p" serverHost`
+
 这个命令如果经常使用可以将ProxyCommand写入到ssh的配置文件中
+
+现在有三个机器
+1. 客户机:192.168.199.3
+2. 跳板机：192.168.199.6
+3. 目标机：192.168.199.5
+
+-----
+
+**第一种执行：`ssh -o ProxyCommand="ssh 192.168.199.6 -W %h:%p" 192.168.199.5`**   
+> 注意这个-W是在新版中才加入，openssh 5.4之后才支持，相当于简化版的nc
+
+客户机进程：
+```shell
+chen      50607  50529  0 17:52 pts/0    00:00:00 ssh -o ProxyCommand=ssh 192.168.199.6 -W %h:%p 192.168.199.5
+chen      50608  50607  0 17:52 pts/0    00:00:00 ssh 192.168.199.6 -W 192.168.199.5:22
+```
+
+客户机显示的连接：
+```
+tcp        0      0 192.168.199.3:34306     192.168.199.6:22        ESTABLISHED 50608/ssh
+```
+
+跳板机显示的连接：
+```
+tcp        0      0 192.168.199.6:36932     192.168.199.5:22        ESTABLISHED -                   
+tcp        0      0 192.168.199.6:22        192.168.199.3:34306     ESTABLISHED - 
+```
+
+目标机显示的连接： 
+```
+tcp        0      0 192.168.199.5:22        192.168.199.6:36932     ESTABLISHED - 
+```
+从上面的结果可以看到，跳板机和两头各建立了一个连接，另外客户机是50608进程占用了这个连接
+
+---
+
+
+**第二种执行：`ssh -o ProxyCommand="ssh 192.168.199.6 nc %h %p" 192.168.199.5`**
+
+这种方式和方面的一样，显示的连接也都一致。 
+
+
+----
+**最后说说一种nc**
+
+注意这种方式需要有个sock5代理，所以跳板机先开启代理：`ssh -D 4000 192.168.199.5 -Nfg`
+nc支持多种代理，包活scok4，sock5和http，这种方式和上面的两种完全不同。有一点很奇怪如果跳板机没开sock5代理也没有任何报错信息，ssh并没有
+并没有使用代理而是直接连接目标服务器
+**`ssh -o ProxyCommand="nc -x 192.168.199.6:4000 %h %p" 192.168.199.5`**
 
 
 ## 三、scp 命令
@@ -126,10 +187,9 @@ rsync命令和scp类似，主要是采用'rsync'算法只同步不同的文件�
 1. eval \`ssh-agent -s\` ：开启agent，这里必须使用eval
 2. ssh-add  id_rsa_file:用来添加密钥，这里如果不指定文件则添加的是~/.ssh/id_rsa文件
 
+## 参考文章
 
-
-
-## 参考：   
 1. [SSH原理与运用（一）：远程登录](http://www.ruanyifeng.com/blog/2011/12/ssh_remote_login.html)
 2. [SSH原理与运用（二）：远程操作与端口转发](http://www.ruanyifeng.com/blog/2011/12/ssh_port_forwarding.html)
 3. [Linux ssh命令详解](https://www.cnblogs.com/ftl1012/p/ssh.html)
+3. [ssh -W and ssh nc](https://stackoverflow.com/questions/22635613/what-is-the-difference-between-ssh-proxycommand-w-nc-exec-nc)
