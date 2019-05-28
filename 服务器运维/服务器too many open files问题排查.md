@@ -1,3 +1,13 @@
+1. 新老版本ssh行为不一致
+2. limit是系统设置和
+UseLogin no 设置为yes
+
+ulimit -n 2000软还是硬8
+
+time_wait优化
+
+
+
 1. 服务网络排查
 服务报错文件描述符不够用，
 
