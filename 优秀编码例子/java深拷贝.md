@@ -97,7 +97,7 @@ public class Source {
 
 这个方法很多书中都有提起，因为序列化来实现深度拷贝代码比较简单，可扩展性好，后期添加字段无需修改实现，不过类需要继承标记接口Serializable（`public class Source implements Serializable`）。不过这个方法没有什么实际用途，因为确实性能非常低。
 
-### json序列化
+### 4. json序列化
 
 ```java
 public class JsonCopy {
