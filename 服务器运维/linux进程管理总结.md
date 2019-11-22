@@ -133,6 +133,27 @@ kill，ps，top，pstree这些命令都比较熟悉就不再提了。
 
 参考链接：
 
+## 十一、disown命令
+
+有这么一种场景，如果你已经在运行一个软件了，但是中途想要退出，但是如果此时关闭中断会导致进程收到SIGHUP信号，对于已经启动的进程，disown命令就是用来解决这个问题的。对于运行中的命令，我们可以通过ctrl+z命令放入后台，注意此时进程转为stop状态(crtl+z会给这个进程发送STOP信号)，我们可以利用bg命令恢复进程的运行。然后执行disown命令，这样进程就不会收到SIGHUP信号了。如下：
+```shell
+[chen@chen ~]$ disown
+-bash: warning: deleting stopped job 1 with process group 12882
+```
+注意上面的警告，我使用ctrl+z命令后没有使用bg恢复进程的执行，然后直接使用了disown命令，他会警告移除了一个停止状态的任务。此时可以使用`kill -CONT pid`（bg命令实际也是使用了这个信号）恢复进程的运行
+
+命令解释：
+```
+disown [-ar] [-h] [jobspec ...]
+
+-a：移除所有的后台任务
+-r：移除正在运行中的任务
+-h：不移除任务，但是会阻止控制进程给任务进程发SIGHUP信号
+jobspec :可以是进程号，也可以是任务列表
+
+默认直接执行disown就是移除最近的任务
+```
+
 1. [Linux进程组和会话](https://my.oschina.net/hosee/blog/507098)
 2. [在线APUE译文](http://zdyi.com/books/apue/)
 3. [linux终端关闭时为什么会导致在其上启动的进程退出？](https://blog.csdn.net/ybxuwei/article/details/77149575)
